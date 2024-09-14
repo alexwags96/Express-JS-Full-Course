@@ -1,5 +1,7 @@
 import express, { urlencoded } from "express";
+import { matchedData, validationResult } from "express-validator";
 import dotenv from "dotenv";
+import { validateUser } from "./validateUser.mjs";
 dotenv.config();
 
 const app = express();
@@ -54,12 +56,15 @@ app.get("/api/users/:id", (req, res) => {
   return res.send(user);
 });
 
-app.post("/api/users", (req, res) => {
-  const { body } = req;
-  if (!body) return sendStatus(404);
-  const newUser = { id: mockUsers.at(-1).id + 1, ...body };
+app.post("/api/users", validateUser, (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+  const data = matchedData(req);
+  if (!data) return sendStatus(404);
+  const newUser = { id: mockUsers.at(-1).id + 1, ...data };
   mockUsers.push(newUser);
-  // console.log('Hee ',newUser);
   return res.status(201).send(newUser);
 });
 
