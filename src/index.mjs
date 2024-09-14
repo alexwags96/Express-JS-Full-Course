@@ -44,7 +44,7 @@ app.post("/api/users", (req, res) => {
   const newUser = { id: mockUsers.at(-1).id + 1, ...body };
   mockUsers.push(newUser);
   // console.log('Hee ',newUser);
-  res.status(201).send(newUser);
+  return res.status(201).send(newUser);
 });
 
 app.get("/api/products", (req, res) => {
@@ -60,7 +60,29 @@ app.put("/api/users/:id", (req, res) => {
   if (userPosition == -1) return res.sendStatus(404);
   mockUsers[userPosition] = body;
   console.log("Update", mockUsers);
-  res.status(200).send(mockUsers);
+  return res.status(200).send(mockUsers);
+});
+
+app.patch("/api/users/:id", (req, res) => {
+  const {
+    body,
+    params: { id },
+  } = req;
+  const userPosition = mockUsers.findIndex((user) => user.id == id);
+  if (userPosition == -1) return res.sendStatus(404);
+  mockUsers[userPosition] = { ...mockUsers[userPosition], ...body };
+  return res.status(200).send(mockUsers);
+});
+
+app.delete("/api/users/:id", (req, res) => {
+  const {
+    body,
+    params: { id },
+  } = req;
+  const userPosition = mockUsers.findIndex((user) => user.id == id);
+  if (userPosition == -1) return res.sendStatus(404);
+  mockUsers.splice(userPosition, 1);
+  return res.status(200).send(mockUsers);
 });
 
 app.listen(port, () => {
