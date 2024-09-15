@@ -7,6 +7,7 @@ import { resolveIndexByUserId } from "../middleware/users.mjs";
 const router = Router();
 
 router.get("/", (req, res) => {
+  res.cookie("Hello", "World", { maxAge: 60000 });
   res.status(201).send({ msg: "Hello" });
 });
 
