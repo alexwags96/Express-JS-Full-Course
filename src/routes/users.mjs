@@ -3,10 +3,14 @@ import { mockUsers } from "../utils/contants.mjs";
 import { matchedData, validationResult } from "express-validator";
 import { validateUser } from "../utils/validateUser.mjs";
 import { resolveIndexByUserId } from "../middleware/users.mjs";
+import User from "../models/userModel.mjs";
 
 const router = Router();
 
 router.get("/", (req, res) => {
+  console.log(req.session);
+  console.log("ID: ", req.sessionID);
+
   res.cookie("Hello", "World", { maxAge: 60000 });
   res.status(201).send({ msg: "Hello" });
 });
@@ -24,24 +28,39 @@ router.get("/api/users", (req, res) => {
   return res.send(filteredUsers);
 });
 
-router.get("/api/users/:id", (req, res) => {
+router.get("/api/users/:id", async (req, res) => {
   const { id } = req.params;
 
-  const user = mockUsers.find((user) => user.id == id);
+  const user = await User.findOne({ id }).exec();
   if (!user) return res.sendStatus(404);
   return res.send(user);
 });
 
-router.post("/api/users", validateUser, (req, res) => {
+router.post("/api/users", validateUser, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(422).json({ errors: errors.array() });
   }
   const data = matchedData(req);
   if (!data) return sendStatus(404);
-  const newUser = { id: mockUsers.at(-1).id + 1, ...data };
-  mockUsers.push(newUser);
-  return res.status(201).send(newUser);
+  let lastUser = await User.findOne().sort({ createdAt: -1 }).exec();
+  console.log(lastUser);
+
+  let lastID;
+  if (!lastUser) lastID = 1;
+  lastID = parseInt(lastUser.id) + 1;
+  console.log(lastID);
+
+  const newUser = new User({ id: lastID, ...data });
+  try {
+    await newUser.save();
+    return res.status(201).send(newUser);
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .send({ message: "Erreur lors de l'enregistrement de l'utilisateur" });
+  }
 });
 
 router.put("/api/users/:id", validateUser, resolveIndexByUserId, (req, res) => {

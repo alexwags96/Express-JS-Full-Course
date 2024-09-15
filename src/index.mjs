@@ -6,6 +6,8 @@ import { validateUser } from "./utils/validateUser.mjs";
 import usersRouter from "./routes/users.mjs";
 import productsRouter from "./routes/products.mjs";
 import cookieParser from "cookie-parser";
+import session from "express-session";
+import mongoose from "./db/mongo.mjs";
 
 const app = express();
 const port = process.env.PORT;
@@ -13,6 +15,17 @@ const port = process.env.PORT;
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(
+  session({
+    secret: "maCleSecrete",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 60000, // en millisecondes
+    },
+  })
+);
+
 app.use(usersRouter);
 app.use(productsRouter);
 
