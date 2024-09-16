@@ -1,12 +1,15 @@
+import User from "../models/userModel.mjs";
 import { mockUsers } from "../utils/contants.mjs";
 
-const resolveIndexByUserId = (req, res, next) => {
+const resolveIndexByUserId = async (req, res, next) => {
   const {
     params: { id },
   } = req;
-  const userPosition = mockUsers.findIndex((user) => user.id == id);
-  if (userPosition == -1) return res.sendStatus(404);
-  req.userPosition = userPosition;
+  if (isNaN(id)) return res.sendStatus(404);
+  const userToUpdate = await User.findOne({ id });
+
+  if (!userToUpdate) return res.sendStatus(404);
+  req.userToUpdate = userToUpdate;
   next();
 };
 

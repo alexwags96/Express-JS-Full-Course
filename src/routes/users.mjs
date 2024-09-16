@@ -15,18 +15,22 @@ router.get("/", (req, res) => {
   res.status(201).send({ msg: "Hello" });
 });
 
-router.get("/api/users", (req, res) => {
+router.get("/api/users", async (req, res) => {
   const { filter, value } = req.query;
-  //   console.log(req.query);
-  if (!filter || !value) return res.send(mockUsers);
-  const filteredUsers = mockUsers.filter((user) =>
-    user[filter].includes(value)
-  );
-  //   console.log(filteredUsers);
-  //   console.log(mockUsers);
-  if (!filteredUsers) return res.send(mockUsers);
-  return res.send(filteredUsers);
+  if (!filter || !value) {
+    const users = await User.find({});
+    return res.send(users);
+  }
+  const usersFiltered = await User.find({
+    $or: [{ [filter]: { $regex: value, $options: "i" } }],
+  });
+  return res.send(usersFiltered);
 });
+// const filteredUsers = mockUsers.filter((user) =>
+//   user[filter].includes(value)
+// );
+//   console.log(filteredUsers);
+//   console.log(mockUsers);
 
 router.get("/api/users/:id", async (req, res) => {
   const { id } = req.params;
@@ -43,12 +47,12 @@ router.post("/api/users", validateUser, async (req, res) => {
   }
   const data = matchedData(req);
   if (!data) return sendStatus(404);
-  let lastUser = await User.findOne().sort({ createdAt: -1 }).exec();
+  let lastUser = await User.findOne().sort({ id: -1 }).exec();
   console.log(lastUser);
 
   let lastID;
   if (!lastUser) lastID = 1;
-  lastID = parseInt(lastUser.id) + 1;
+  if (lastUser) lastID = parseInt(lastUser.id) + 1;
   console.log(lastID);
 
   const newUser = new User({ id: lastID, ...data });
@@ -63,16 +67,33 @@ router.post("/api/users", validateUser, async (req, res) => {
   }
 });
 
-router.put("/api/users/:id", validateUser, resolveIndexByUserId, (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(422).json({ errors: errors.array() });
+router.put(
+  "/api/users/:id",
+  validateUser,
+  resolveIndexByUserId,
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(422).json({ errors: errors.array() });
+    }
+    const { body, userToUpdate } = req;
+    console.log({ body, userToUpdate });
+
+    try {
+      const user = await User.findOneAndUpdate(
+        { id: userToUpdate.id },
+        { $set: body }
+      );
+      // console.log("Update", user);
+      return res.status(200).send(user);
+    } catch (err) {
+      console.error(err);
+      return res
+        .status(500)
+        .send({ message: "Erreur de mise à jour de l'utilisateur" });
+    }
   }
-  const { body, userPosition } = req;
-  mockUsers[userPosition] = { id: mockUsers[userPosition].id, ...body };
-  console.log("Update", mockUsers);
-  return res.status(200).send(mockUsers);
-});
+);
 
 router.patch("/api/users/:id", resolveIndexByUserId, (req, res) => {
   const { body, userPosition } = req;
@@ -80,11 +101,17 @@ router.patch("/api/users/:id", resolveIndexByUserId, (req, res) => {
   return res.status(200).send(mockUsers);
 });
 
-router.delete("/api/users/:id", resolveIndexByUserId, (req, res) => {
-  const { userPosition } = req;
-
-  mockUsers.splice(userPosition, 1);
-  return res.status(200).send(mockUsers);
+router.delete("/api/users/:id", resolveIndexByUserId, async (req, res) => {
+  const { userToUpdate } = req;
+  const deletedUser = await User.findOneAndDelete({ id: userToUpdate.id });
+  if (!deletedUser) {
+    return res.status(404)({
+      message: `Utilisateur avec l'ID ${req.params.id} non trouvé`,
+    });
+  }
+  return res
+    .status(200)
+    .send({ message: `Utilisateur supprimé avec succès`, deletedUser });
 });
 
 export default router;
