@@ -8,10 +8,10 @@ import User from "../models/userModel.mjs";
 const router = Router();
 
 router.get("/", (req, res) => {
-  console.log(req.session);
-  console.log("ID: ", req.sessionID);
+  // console.log(req.session);
+  // console.log("ID: ", req.sessionID);
 
-  res.cookie("Hello", "World", { maxAge: 60000 });
+  // res.cookie("Hello", "World", { maxAge: 60000 });
   res.status(201).send({ msg: "Hello" });
 });
 
@@ -46,16 +46,14 @@ router.post("/api/users", validateUser, async (req, res) => {
     return res.status(422).json({ errors: errors.array() });
   }
   const data = matchedData(req);
+  // console.log(data);
+
   if (!data) return sendStatus(404);
-  let lastUser = await User.findOne().sort({ id: -1 }).exec();
-  console.log(lastUser);
+  let findUser = await User.findOne({ username: data.username });
 
-  let lastID;
-  if (!lastUser) lastID = 1;
-  if (lastUser) lastID = parseInt(lastUser.id) + 1;
-  console.log(lastID);
+  if (findUser) return res.send("Utilisateur existant");
 
-  const newUser = new User({ id: lastID, ...data });
+  const newUser = new User(data);
   try {
     await newUser.save();
     return res.status(201).send(newUser);

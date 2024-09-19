@@ -1,7 +1,7 @@
 import { check } from "express-validator";
 
 export const validateUser = [
-  check("userName")
+  check("username")
     .isString()
     .withMessage("userName doit être une chaîne de caractères")
     .isLength({ min: 2, max: 20 })
@@ -9,7 +9,7 @@ export const validateUser = [
     .not()
     .isEmpty()
     .withMessage("userName ne peut pas être vide"),
-  check("displayName")
+  check("password")
     .isString()
     .withMessage("displayName doit être une chaîne de caractères")
     .not()
